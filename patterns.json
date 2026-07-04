@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Credential Variable Assignments (password, token, apiKey)",
+    "pattern": "(const|let|var|this\\.)[a-zA-Z0-9_-]*(password|pass|secret|token|apikey|jwt|cred)[a-zA-Z0-9_-]*\\s*=\\s*(\\/[^\\/\\n]+\\/|new RegExp)",
+    "flags": "gi"
+  },
+  {
+    "name": "Email Validation Logic",
+    "pattern": "\\/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}\\/[gimyuxs]*",
+    "flags": "g"
+  },
+  {
+    "name": "JWT / Bearer Token Formats",
+    "pattern": "\\/eyJ[a-zA-Z0-9-_]+\\.eyJ[a-zA-Z0-9-_]+\\.[a-zA-Z0-9-_]+\\/",
+    "flags": "g"
+  },
+  {
+    "name": "Bounty Trap: Missing Start Anchor on URLs (OAuth/SSRF Bypass)",
+    "pattern": "\\/[^\\^]https?:\\/\\/[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}[^\\/\\n]*\\/",
+    "flags": "g"
+  },
+  {
+    "name": "Bounty Trap: Unescaped Dots in Domain Validation (CORS/Origin Bypass)",
+    "pattern": "\\/[\\^]?[a-zA-Z0-9]+[^\\\\]\\.[a-zA-Z0-9]+[^\\\\]\\.[a-zA-Z]{2,}[\\$]?\\/",
+    "flags": "g"
+  },
+  {
+    "name": "Bounty Trap: Missing End Anchor on Domain URLs (TLD Append Bypass)",
+    "pattern": "\\/\\^https?:\\/\\/[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(?!\\\\\\$)[^\\/\\n]*\\/",
+    "flags": "g"
+  },
+  {
+    "name": "Bounty Trap: Potential ReDoS / Evil Regex (Nested Quantifiers)",
+    "pattern": "\\/([^\\/\\n]*([+*?])\\s*\\)\\s*\\2|\\(([^\\/\\n]+([+*]))\\)\\s*\\4[^\\/\\n]*\\/",
+    "flags": "g"
+  },
+  {
+    "name": "Bounty Trap: Loose Wildcard IP Whitelisting (SSRF Bypass)",
+    "pattern": "\\/\\^(127|192|10|172)\\.[^\\/\\n]*\\.\\*\\/",
+    "flags": "g"
+  }
+]

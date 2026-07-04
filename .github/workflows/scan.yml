@@ -1,0 +1,42 @@
+name: Continuous Domain Processing
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs once a day automatically
+  workflow_dispatch:      # Allows you to trigger it manually from the UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install Dependencies
+      run: |
+        # Install your processing binary (e.g., waybackurls)
+        # Assuming a Go environment or direct binary download
+        go install github.com/tomnomnom/waybackurls@latest
+        echo "$HOME/go/bin" >> $GITHUB_PATH
+
+    - name: Run Processing Script
+      run: ./run_scan.sh
+
+    - name: Commit and Push Progress
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # Stage the tracked outputs and the state configuration file
+        git add waybackurls.txt resume.cfg
+        
+        # Commit only if files actually changed
+        if ! git diff-index --quiet HEAD --; then
+          git commit -m "Update scan progress: Line $(cat resume.cfg)"
+          git push origin HEAD:${{ github.ref }}
+        else
+          echo "No progress changes to commit."
+        fi
