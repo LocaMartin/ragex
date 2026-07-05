@@ -1,34 +1,19 @@
-https://atg.se/Completion of the KYC verification process on YesWeHack platform is a mandatory step in order to participate in Bug Bounty programs and receive monetary rewards.
-https://atg.se/Please register for Bug Bounty Program via YesWeHack.
 https://bugcrowd.com/privateinternetaccess
 https://careers.doctolib.fr
 https://careers.ovh.com
-https://contentsquare.com/.well-known/security.txt
-https://contentsquare.com/disclosure
-https://contentsquare.com/gpg/security-at-contentsquare-publickey.txt
 https://doctolib.com/public_key.asc
-https://jobs.lever.co/contentsquare
+https://infomaniak.vulnerability-disclosure.com
 https://keys.openpgp.org/search?q=csirt@kindredgroup.com
-https://kpaste.infomaniak.com/security@infomaniak.com
-https://moodle.org/.well-known/security.txt
-https://moodle.org/security/
-https://moodle.org/security/report/
-https://moodledev.io/general/development/process/security
 https://omatg.se/lediga-jobb
 https://qwantjunior.com/ssi@qwant.com
 https://static.zecible.fr/.well-known/pgp-key.txt
 https://static.zecible.fr/.well-known/security.txt
-https://vdp.louisvuitton.com
 https://vdp.post.ch/p/Information-Security
 https://vdp.telenor.se/
 https://www.atg.se/.well-known/security.txt
 https://www.atg.se/Completion of the KYC verification process on YesWeHack platform is a mandatory step in order to participate in Bug Bounty programs and receive monetary rewards.
 https://www.atg.se/Please register for Bug Bounty Program via YesWeHack.
 https://www.blablacar.com/dreamjobs
-https://www.cyber.gouv.qc.ca/.well-known/security.txt
-https://www.cyber.gouv.qc.ca/signalements/conditions-utilisation
-https://www.cyber.gouv.qc.ca/signalements/contributeurs
-https://www.cyber.gouv.qc.ca/signalements/plateforme-signalement-vulnerabilites
 https://www.decathlon.be/.well-known/security.txt
 https://www.decathlon.be/form link https://vdp.decathlon.net/p/Send-a-report
 https://www.decathlon.be/link vdp.decathlon.net
@@ -70,16 +55,12 @@ https://www.decathlon.ro/form link https://vdp.decathlon.net/p/Send-a-report
 https://www.decathlon.ro/link vdp.decathlon.net
 https://www.doctolib.com/.well-known/security.txt
 https://www.doctolib.com/security.txt
-https://www.expressvpn.com/.well-known/security.txt
-https://www.expressvpn.com/bug-bounty
-https://www.expressvpn.com/bug-bounty/acknowledgment
-https://www.expressvpn.com/jobs
-https://www.infomaniak.com/en/about/join-us
+https://www.infomaniak.com/en/company/join-us
+https://www.infomaniak.com/security@infomaniak.com
 https://www.ovh.com/.well-known/security-ovh-emea.asc
 https://www.ovh.com/csirt@ovhcloud.com
 https://www.privateinternetaccess.com/.well-known/security.txt
 https://www.privateinternetaccess.com/about-us
-https://www.quebecemploi.gouv.qc.ca/plateforme-emploi
 https://www.qwant.com/ssi@qwant.com
 https://www.telenor.se/.well-known/security.txt
 https://www.zecible.fr/contactez-nous
@@ -87,9 +68,10 @@ https://yeswehack.com/auth/register
 https://yeswehack.com/programs/atg-public-bug-bounty-program
 https://yeswehack.com/programs/atg-public-bug-bounty-program/create-report
 https://yeswehack.com/programs/bug-bounty-program-blablacar
-https://yeswehack.com/programs/contentsquare-bug-bounty-program
 https://yeswehack.com/programs/doctolib-public-bug-bounty-program
 https://yeswehack.com/programs/ovh
 https://yeswehack.com/programs/qwant
 https://ywh.admin.zecible.fr/security@zecible.pro
 https://ywh.api.zecible.fr/security@zecible.pro
+https://ywh.comptage.zecible.fr/security@zecible.pro
+https://ywh.crons.zecible.fr/security@zecible.pro
