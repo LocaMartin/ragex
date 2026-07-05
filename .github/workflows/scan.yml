@@ -8,6 +8,9 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    # FIX 1: Grant explicit write permissions to the runner token
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout repository
@@ -17,8 +20,6 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        # Install your processing binary (e.g., waybackurls)
-        # Assuming a Go environment or direct binary download
         go install github.com/tomnomnom/waybackurls@latest
         echo "$HOME/go/bin" >> $GITHUB_PATH
 
@@ -30,12 +31,11 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         
-        # Stage the tracked outputs and the state configuration file
         git add waybackurls.txt resume.cfg
         
-        # Commit only if files actually changed
         if ! git diff-index --quiet HEAD --; then
-          git commit -m "Update scan progress: Line $(cat resume.cfg)"
+          # Safe fallback commit message
+          git commit -m "Update scan progress"
           git push origin HEAD:${{ github.ref }}
         else
           echo "No progress changes to commit."
