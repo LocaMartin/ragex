@@ -30,11 +30,12 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        
-        git add waybackurls.txt resume.cfg
-        
+
+        # Save compressed output, not huge raw txt
+        git rm --ignore-unmatch --cached waybackurls.txt || true
+        git add waybackurls.txt.gz resume.cfg
+
         if ! git diff-index --quiet HEAD --; then
-          # Safe fallback commit message
           git commit -m "Update scan progress"
           git push origin HEAD:${{ github.ref }}
         else
