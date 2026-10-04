@@ -3,28 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ragex Matches</title>
+    <title>Ragex Scan Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.min.js"></script>
     <style>
-        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-        pre { white-space: pre-wrap; word-wrap: break-word; }
-        h1 { color: #fff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #58a6ff;
+            font-size: 1.5rem;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        #searchBar {
+            width: 100%;
+            padding: 10px 14px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        #searchBar:focus {
+            border-color: #58a6ff;
+        }
+        #status {
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+        .results-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .line-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .url { color: #58a6ff; }
+        .line-num { color: #d2a8ff; }
+        .match-content { color: #7ee787; }
     </style>
 </head>
 <body>
-    <h1>The matched output will now display exactly in the format you requested:</h1>
-    <pre id="output">Loading matches...</pre>
+
+    <h1>Ragex Scanner Results</h1>
+
+    <div class="controls">
+        <input type="text" id="searchBar" placeholder="Search by URL, line number, or regex content..." onkeyup="filterResults()">
+    </div>
+
+    <div id="status">Decompressing waybackurls.txt.gz...</div>
+
+    <div class="results-box" id="resultsContainer"></div>
+
     <script>
-        fetch('matches.txt')
-            .then(response => {
-                if (!response.ok) throw new Error('matches.txt not found');
-                return response.text();
-            })
-            .then(text => {
-                document.getElementById('output').textContent = text || 'No matches found.';
-            })
-            .catch(error => {
-                document.getElementById('output').textContent = 'Error loading matches: ' + error.message;
-            });
+        let allResults = [];
+
+        async function loadAndDecompress() {
+            const statusEl = document.getElementById('status');
+            try {
+                const response = await fetch('waybackurls.txt.gz');
+                if (!response.ok) throw new Error('Failed to fetch waybackurls.txt.gz');
+                
+                const buffer = await response.arrayBuffer();
+                const compressed = new Uint8Array(buffer);
+                
+                statusEl.innerText = "Decompressing archive...";
+                
+                fflate.gunzip(compressed, async (err, decompressed) => {
+                    if (err) {
+                        statusEl.innerText = "Error decompressing file: " + err.message;
+                        return;
+                    }
+                    
+                    const text = new TextDecoder().decode(decompressed);
+                    const urls = text.split('\n').map(u => u.trim()).filter(Boolean);
+                    
+                    statusEl.innerText = `Decompressed ${urls.length} URLs. Fetching pattern rules...`;
+                    await runScanner(urls);
+                });
+            } catch (err) {
+                statusEl.innerText = "Error: " + err.message;
+            }
+        }
+
+        async function runScanner(urls) {
+            const statusEl = document.getElementById('status');
+            let patterns = [];
+            try {
+                const pResp = await fetch('patterns.json');
+                patterns = await pResp.json();
+            } catch (e) {
+                statusEl.innerText = "Failed to load patterns.json";
+                return;
+            }
+
+            statusEl.innerText = "Scanning loaded endpoints...";
+            
+            // Limit concurrent processing for browser performance
+            for (let i = 0; i < Math.min(urls.length, 200); i++) {
+                const url = urls[i];
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const content = await res.text();
+                    const lines = content.split('\n');
+
+                    patterns.forEach(p => {
+                        const regex = new RegExp(p.pattern, p.flags || 'g');
+                        lines.forEach((line, index) => {
+                            const matches = line.match(regex);
+                            if (matches) {
+                                matches.forEach(match => {
+                                    allResults.push({
+                                        url: url,
+                                        line: index + 1,
+                                        match: match.trim()
+                                    });
+                                });
+                            }
+                        });
+                    });
+                } catch (e) {
+                    // Ignore CORS / network errors on scanned endpoints
+                }
+            }
+
+            statusEl.innerText = `Scan complete. Found ${allResults.length} matches.`;
+            renderResults(allResults);
+        }
+
+        function renderResults(items) {
+            const container = document.getElementById('resultsContainer');
+            if (items.length === 0) {
+                container.innerHTML = '<div>No matches found.</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => 
+                `<div class="line-item"><span class="url">${escapeHtml(item.url)}</span> | <span class="line-num">${item.line}</span> | <span class="match-content">${escapeHtml(item.match)}</span></div>`
+            ).join('');
+        }
+
+        function filterResults() {
+            const query = document.getElementById('searchBar').value.toLowerCase();
+            const filtered = allResults.filter(item => 
+                item.url.toLowerCase().includes(query) ||
+                item.line.toString().includes(query) ||
+                item.match.toLowerCase().includes(query)
+            );
+            renderResults(filtered);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        window.onload = loadAndDecompress;
     </script>
 </body>
 </html>
