@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ragex Matches</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        h1 { color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>The matched output will now display exactly in the format you requested:</h1>
+    <pre id="output">Loading matches...</pre>
+    <script>
+        fetch('matches.txt')
+            .then(response => {
+                if (!response.ok) throw new Error('matches.txt not found');
+                return response.text();
+            })
+            .then(text => {
+                document.getElementById('output').textContent = text || 'No matches found.';
+            })
+            .catch(error => {
+                document.getElementById('output').textContent = 'Error loading matches: ' + error.message;
+            });
+    </script>
+</body>
+</html>
