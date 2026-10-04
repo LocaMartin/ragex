@@ -1,52 +1,75 @@
-name: Continuous Domain Processing
+#!/usr/bin/env bash
 
-on:
-  schedule:
-    - cron: '0 0 * * *' # Runs once a day automatically
-  workflow_dispatch:      # Allows you to trigger it manually from the UI
+INPUT_FILE="all.txt"
+OUTPUT_GZ="waybackurls.txt.gz"
+STATE_FILE="resume.cfg"
 
-jobs:
-  run-pipeline:
-    runs-on: ubuntu-latest
-    # FIX 1: Grant explicit write permissions to the runner token
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Install Dependencies
-      run: |
-        go install github.com/tomnomnom/waybackurls@latest
-        echo "$HOME/go/bin" >> $GITHUB_PATH
-
-    - name: Run Processing Script
-      run: ./run_scan.sh
-
-    - name: Run Regex Scanner
-      run: |
-        # Extract .js URLs from compressed waybackurls and run ragex.js on a subset to avoid extreme runtimes
-        if [ -f waybackurls.txt.gz ]; then
-          gzip -dc waybackurls.txt.gz | grep '\.js$' | head -n 50 | node ragex.js > matches.txt
-        else
-          echo "No waybackurls.txt.gz found" > matches.txt
+# Force restart clean scan by default if requested
+if [ "$1" == "--restart" ] || [ ! -f "$OUTPUT_GZ" ]; then
+    echo "[+] Cleaning up previous scans and restarting from line 0..."
+    rm -f "$OUTPUT_GZ" "$STATE_FILE" waybackurls.txt
+    START_LINE=0
+else
+    START_LINE=0
+    if [ -f "$STATE_FILE" ]; then
+        EXTRACTED_INDEX="$(grep -E '^index=' "$STATE_FILE" | cut -d'=' -f2)"
+        if [[ "$EXTRACTED_INDEX" =~ ^[0-9]+$ ]]; then
+            START_LINE="$EXTRACTED_INDEX"
         fi
+    fi
+    echo "[+] Resuming scan from index line: $START_LINE"
+fi
 
-    - name: Commit and Push Progress
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
+START_TIME="$(date +%s)"
+MAX_DURATION=19800 # 5.5 hours
 
-        # Save compressed output, not huge raw txt
-        git rm --ignore-unmatch --cached waybackurls.txt || true
-        git add waybackurls.txt.gz resume.cfg matches.txt index.html
+CURRENT_LINE=0
 
-        if ! git diff-index --quiet HEAD --; then
-          git commit -m "Update scan progress and matches"
-          git push origin HEAD:${{ github.ref }}
-        else
-          echo "No progress changes to commit."
-        fi
+# Temporary uncompressed storage before deduping/cleaning
+TMP_OUT="$(mktemp)"
+
+if [ -f "$OUTPUT_GZ" ]; then
+    gzip -dc "$OUTPUT_GZ" > "$TMP_OUT" 2>/dev/null || true
+fi
+
+while IFS= read -r host || [ -n "$host" ]; do
+    CURRENT_LINE=$((CURRENT_LINE + 1))
+
+    if [ "$CURRENT_LINE" -le "$START_LINE" ]; then
+        continue
+    fi
+
+    host="$(printf '%s' "$host" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+
+    if [ -n "$host" ]; then
+        echo "[+] Processing [$CURRENT_LINE]: $host"
+        echo "$host" | waybackurls >> "$TMP_OUT"
+    fi
+
+    NOW="$(date +%s)"
+    ELAPSED=$((NOW - START_TIME))
+
+    if [ "$ELAPSED" -ge "$MAX_DURATION" ]; then
+        echo "[!] Approaching time limit. Saving checkpoint..."
+        echo -e "resume_from=$host\nindex=$CURRENT_LINE" > "$STATE_FILE"
+        break
+    fi
+done < "$INPUT_FILE"
+
+if [ "$CURRENT_LINE" -ge "$(wc -l < "$INPUT_FILE")" ]; then
+    echo -e "resume_from=DONE\nindex=$CURRENT_LINE" > "$STATE_FILE"
+fi
+
+# Clean, deduplicate, and push directly to .gz
+awk '
+{
+    gsub(/\r/, "")
+    sub(/^[[:space:]]+/, "")
+    sub(/[[:space:]]+$/, "")
+    if ($0 != "") print
+}
+' "$TMP_OUT" | LC_ALL=C sort -u | gzip -9 -c > "$OUTPUT_GZ"
+
+rm -f "$TMP_OUT"
+
+echo "[+] Cleaned & compressed output updated at $OUTPUT_GZ"
