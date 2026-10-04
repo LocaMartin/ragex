@@ -37,19 +37,33 @@ async function scanRemoteJs(url, patternFilePath = './patterns.json') {
 
         let totalMatchesFound = 0;
 
+        const lines = jsCode.split('\n');
+
         patternsData.forEach(item => {
             const dynamicRegex = new RegExp(item.pattern, item.flags || 'g');
-            const matches = jsCode.match(dynamicRegex) || [];
+            
+            let matchCount = 0;
+            const matchesArr = [];
+            
+            lines.forEach((line, index) => {
+                const matches = line.match(dynamicRegex) || [];
+                if (matches.length > 0) {
+                    matchCount += matches.length;
+                    matches.forEach(match => {
+                        matchesArr.push(`${url}|${index + 1}|${match.trim()}`);
+                    });
+                }
+            });
 
-            if (matches.length > 0) {
-                totalMatchesFound += matches.length;
+            if (matchCount > 0) {
+                totalMatchesFound += matchCount;
                 // Highlight vulnerabilities vs standard regex configurations
                 const isBountyTrap = item.name.toLowerCase().includes('bounty trap');
                 const titleColor = isBountyTrap ? colors.red : colors.green;
 
-                console.log(`\n${titleColor}[+] ${item.name} (${matches.length} found):${colors.reset}`);
-                matches.forEach(match => {
-                    console.log(`  -> ${colors.yellow}${match.trim()}${colors.reset}`);
+                console.log(`\n${titleColor}[+] ${item.name} (${matchCount} found):${colors.reset}`);
+                matchesArr.forEach(m => {
+                    console.log(m);
                 });
             }
         });

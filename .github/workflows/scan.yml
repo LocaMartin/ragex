@@ -26,6 +26,15 @@ jobs:
     - name: Run Processing Script
       run: ./run_scan.sh
 
+    - name: Run Regex Scanner
+      run: |
+        # Extract .js URLs from compressed waybackurls and run ragex.js on a subset to avoid extreme runtimes
+        if [ -f waybackurls.txt.gz ]; then
+          gzip -dc waybackurls.txt.gz | grep '\.js$' | head -n 50 | node ragex.js > matches.txt
+        else
+          echo "No waybackurls.txt.gz found" > matches.txt
+        fi
+
     - name: Commit and Push Progress
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -33,10 +42,10 @@ jobs:
 
         # Save compressed output, not huge raw txt
         git rm --ignore-unmatch --cached waybackurls.txt || true
-        git add waybackurls.txt.gz resume.cfg
+        git add waybackurls.txt.gz resume.cfg matches.txt index.html
 
         if ! git diff-index --quiet HEAD --; then
-          git commit -m "Update scan progress"
+          git commit -m "Update scan progress and matches"
           git push origin HEAD:${{ github.ref }}
         else
           echo "No progress changes to commit."
