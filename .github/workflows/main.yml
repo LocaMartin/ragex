@@ -1,0 +1,86 @@
+name: Ragex Scan, Encrypt and Deploy
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    # Runs every 5 hours
+    - cron: '0 */5 * * *'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Decrypt previous results and state
+        env:
+          RAGEX_PASS: ${{ secrets.RAGEX_PASS }}
+        run: |
+          if [ -z "$RAGEX_PASS" ]; then
+            echo "::error::RAGEX_PASS secret is not set."
+            exit 1
+          fi
+          
+          # Decrypt results.json.enc if it exists
+          if [ -f "results.json.enc" ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -in results.json.enc -out results.json -pass env:RAGEX_PASS
+          fi
+          
+          # Decrypt scan_state.json.enc if it exists
+          if [ -f "scan_state.json.enc" ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -in scan_state.json.enc -out scan_state.json -pass env:RAGEX_PASS
+          fi
+
+      - name: Encrypt Raw Files
+        env:
+          RAGEX_PASS: ${{ secrets.RAGEX_PASS }}
+        run: |
+          # Compress waybackurls.txt if not already gzipped
+          if [ -f "waybackurls.txt" ] && [ ! -f "waybackurls.txt.gz" ]; then
+            gzip -9 -c waybackurls.txt > waybackurls.txt.gz
+          fi
+          
+          # Encrypt waybackurls.txt.gz
+          if [ -f "waybackurls.txt.gz" ] && [ ! -f "waybackurls.txt.gz.enc" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in waybackurls.txt.gz -out waybackurls.txt.gz.enc -pass env:RAGEX_PASS
+          fi
+          
+          # Encrypt all.txt
+          if [ -f "all.txt" ] && [ ! -f "all.txt.enc" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in all.txt -out all.txt.enc -pass env:RAGEX_PASS
+          fi
+
+      - name: Run Scanner (with Resume)
+        run: |
+          node generate_results.js
+
+      - name: Encrypt results and state
+        env:
+          RAGEX_PASS: ${{ secrets.RAGEX_PASS }}
+        run: |
+          if [ -f "results.json" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in results.json -out results.json.enc -pass env:RAGEX_PASS
+            rm results.json
+          fi
+          
+          if [ -f "scan_state.json" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in scan_state.json -out scan_state.json.enc -pass env:RAGEX_PASS
+            rm scan_state.json
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add waybackurls.txt.gz.enc all.txt.enc results.json.enc scan_state.json.enc
+          git commit -m "Auto-generate encrypted results and resume state [skip ci]" || echo "No changes to commit"
+          git push
